@@ -1,29 +1,29 @@
-# Object Detection with YOLOv5 on Android
+# Android에서 YOLOv5를 사용한 객체 팀지
 
-## Introduction
+## 소개하기
 
-[YOLO](https://pjreddie.com/darknet/yolo/) (You Only Look Once) is one of the fastest and most popular object detection models. [YOLOv5](https://github.com/ultralytics/yolov5) is an open-source implementation of the latest version of YOLO (for a quick test of loading YOLOv5 from PyTorch hub for inference, see [here](https://pytorch.org/hub/ultralytics_yolov5/#load-from-pytorch-hub)). This Object Detection with YOLOv5 Android sample app uses the PyTorch scripted YOLOv5 model to detect objects of the [80 classes](https://github.com/ultralytics/yolov5/blob/master/data/coco.yaml) trained with the model.
+[YOLO](https://pjreddie.com/darknet/yolo/) (You Only Look Once)는 가장 빠르고 인기 있는 객체 팀지 모델 중 하나입니다. [YOLOv5](https://github.com/ultralytics/yolov5)는 오픈 소스로 구현된 YOLO 최신 버전입니다(추론을 위해 PyTorch 허브에서 YOLOv5를 로드하는 빠른 테스트는 [여기](https://pytorch.org/hub/ultralytics_yolov5/#load-from-pytorch-hub) 참조). Object Detection with YOLOv5 Android 샘플 앱은 스크립트화된 PyTorch YOLOv5 모델을 사용하여 훈련된 [80개 클래스](https://github.com/ultralytics/yolov5/blob/master/data/coco.yaml)의 객체를 감지합니다.
 
-**Update 09-30-2021**: A new section of using a custom dataset to fine-tune the YOLOv5 model (aka transfer learning) and steps to change the Android project to use the custom model was added.
+**2021년 9월 30일 업데이트**: YOLOv5 모델(전이 학습이라고도 함)을 미세 조정(fine-tune)하기 위해 사용자 지정 데이터 세트를 사용하는 섹션과 사용자 지정 모델을 사용하도록 Android 프로젝트를 변경하는 단계가 추가되었습니다.
 
-## Prerequisites
+## 전제조건
 
 * PyTorch 1.10.0 and torchvision 0.11.1 (Optional)
 * Python 3.8 (Optional)
 * Android Pytorch library pytorch_android_lite:1.10.0, pytorch_android_torchvision_lite:1.10.0
 * Android Studio 4.0.1 or later
 
-## Quick Start
+## 빠른 시작
 
-To Test Run the Object Detection Android App, follow the steps below:
+Object Detection Android 앱을 실행하기 위해 다음 단계가 필요합니다.
 
-### 1. Prepare the model
+### 1. 모델 준비하기
 
-If you don't have the PyTorch environment set up to run the script, you can download the model file `yolov5s.torchscript.ptl` [here](https://pytorch-mobile-demo-apps.s3.us-east-2.amazonaws.com/yolov5s.torchscript.ptl) to the `android-demo-app/ObjectDetection/app/src/main/assets` folder, then skip the rest of this step and go to step 2 directly.
+PyTorch의 스크립트를 실행하는 환경을 설정하지 않은 경우 모델 파일 `yolov5s.torchscript.ptl`을 [여기](https://pytorch-mobile-demo-apps.s3.us-east-2.amazonaws.com/yolov5s.torchscript.ptl) 에서 다운로드할 수 있습니다. 다운로드받은 모델 파일을 `android-demo-app/ObjectDetection/app/src/main/assets` 폴더에 넣은 다음, 이 단계의 나머지 부분을 건너뛰고 2단계로 바로 이동하시면 됩니다.
 
-The Python script `export.py` in the `models` folder of the [YOLOv5 repo](https://github.com/ultralytics/yolov5) is used to generate a TorchScript-formatted YOLOv5 model named `yolov5s.torchscript.pt` for mobile apps.
+[YOLOv5 repo](https://github.com/ultralytics/yolov5)의 `models` 폴더에 있는 Python 스크립트 `export.py`는 모바일 앱용 `yolov5s.torchscript.pt`라는 TorchScript 형식의 YOLOv5 모델을 생성하는 데 사용됩니다.
 
-Open a Mac/Linux/Windows Terminal, run the following commands (note that we use the fork of the original YOLOv5 repo to make sure the code changes work, but feel free to use the original repo):
+Mac/Linux/Windows 터미널을 열고 다음 명령을 실행합니다(코드 변경 사항이 작동하는지 확인하기 위해 원본 YOLOv5 저장소의 포크를 사용하지만, 원본 저장소 자체 자유롭게 사용할 수 있음).
 
 ```
 git clone https://github.com/ultralytics/yolov5
@@ -31,36 +31,36 @@ cd yolov5
 pip install -r requirements.txt wanb
 ```
 
-Note the steps below have been tested with the commit `cd35a009ba964331abccd30f6fa0614224105d39` and if there's any issue with running the script or using the model, try `git reset --hard cd35a009ba964331abccd30f6fa0614224105d39`.
+아래 단계는 `cd35a009ba964331abccd30f6fa0614224105d39` 커밋으로 테스트되었으며, 스크립트 실행 또는 모델 사용에 문제가 있으면 `git reset --hard cd35a009ba964331abccd30f6fa0614224105d39`를 시도하십시오.
 
-Edit `export.py` to make the following two changes:
+`export.py` 파일에서 아래의 두 가지를 변경합니다.
 
-* After `f = file.with_suffix('.torchscript.pt')`, add a line `fl = file.with_suffix('.torchscript.ptl')`
+* `f = file.with_suffix('.torchscript.pt')` 뒤에 `fl = file.with_suffix('.torchscript.ptl')` 추가
 
-* After `(optimize_for_mobile(ts) if optimize else ts).save(f)`, add `(optimize_for_mobile(ts) if optimize else ts)._save_for_lite_interpreter(str(fl))`
+* `(optimize_for_mobile(ts) if optimize else ts).save(f)` 뒤에 `(optimize_for_mobile(ts) if optimize else ts)._save_for_lite_interpreter(str(fl))` 추가
 
-Now run the script below to generate the optimized TorchScript lite model `yolov5s.torchscript.ptl` and copy it to the `android-demo-app/ObjectDetection/app/src/main/assets` folder (the original full JIT model `yolov5s.torchscript.pt` was also generated for comparison):
+이제 아래 스크립트를 실행하여 최적화된 TorchScript lite 모델 `yolov5s.torchscript.ptl`을 생성하고 `android-demo-app/ObjectDetection/app/src/main/assets` 폴더에 복사합니다(비교를 위해 원래 전체 JIT 모델 `yolov5s.torchscript.pt`도 같이 생성됩니다.)
 
 ```
 python export.py --weights yolov5s.pt --include torchscript
 ```
 
-Note that small sized version of the YOLOv5 model, which runs faster but with less accuracy, is generated by default when running the `export.py`. You can also change the value of the `weights` parameter in the `export.py` to generate the medium, large, and extra large version of the model.
+기본적으로 `export.py`를 실행하면 더 빠르게 실행되지만, 정확도가 떨어지는 작은 크기의 YOLOv5 모델이 생성됩니다. 또한 `export.py`에서 `weights` 매개변수의 값을 변경하여 중형, 대형 및 초대형 버전 모델을 생성할 수도 있습니다.
 
-### 2. Build with Android Studio
+### 2. Android Studio에서 빌드하기
 
-Start Android Studio, then open the project located in `android-demo-app/ObjectDetection`. Note the app's `build.gradle` file has the following lines:
+Android Studio를 실행해서 `android-demo-app/ObjectDetection`에 있는 프로젝트를 엽니다. 앱의 `build.gradle` 파일에는 다음 코드 라인이 있는 것에 주목하세요.
 
 ```
 implementation 'org.pytorch:pytorch_android_lite:1.10.0'
 implementation 'org.pytorch:pytorch_android_torchvision_lite:1.10.0'
 ```
 
-### 3. Run the app
+### 3. 앱 실행하기
 
-Select an Android emulator or device to run the app. You can go through the included example test images to see the detection results. You can also select a picture from your Android device's Photos library, take a picture with the device camera, or even use live camera to do object detection - see this [video](https://drive.google.com/file/d/1-5AoRONUqZPZByM-fy0m7r8Ct11OnlIT/view) for a screencast of the app running.
+앱을 실행할 Android 에뮬레이터 또는 실제 기기를 선택하세요. 포함된 테스트 이미지로 탐지 결과를 확인할 수 있습니다. Android 기기의 사진 라이브러리에서 사진을 선택하거나, 기기 카메라로 사진을 찍거나, 라이브 카메라를 사용하여 객체 탐지를 수행할 수도 있습니다. - 스크린캐스트로 실행 중인 [영상](https://drive.google.com/file/d/1-5AoRONUqZPZByM-fy0m7r8Ct11OnlIT/view)도 확인하세요.
 
-Some example images and the detection results are as follows:
+아래는 예제 이미지 및 객체 탐지 결과입니다.
 
 ![](screenshot1.png)
 ![](screenshot2.png)
@@ -68,64 +68,64 @@ Some example images and the detection results are as follows:
 ![](screenshot3.png)
 ![](screenshot4.png)
 
-## Transfer Learning
+## 전이 학습
 
-In this section, you'll see how to use an example dataset called [aicook](https://universe.roboflow.com/karel-cornelis-q2qqg/aicook-lcv4d/4), used to detect ingredients in your fridge, to fine-tune the YOLOv5 model. For more info on the YOLOv5 transfer learning, see [here](https://github.com/ultralytics/yolov5/issues/1314). If you use the default YOLOv5 model to do object detection on what's inside your fridge, you'll likely not get good results. That's why you need to have a custom model trained with a dataset like aicook.
+이 섹션에서는 [aicook](https://universe.roboflow.com/karel-cornelis-q2qqg/aicook-lcv4d/4)이라는 냉장고의 재료를 감지하는 데 사용되는 예제 데이터 세트를 사용하여 YOLOv5 모델을 미세 조정하는 방법을 보여줍니다. YOLOv5 전이 학습에 대한 자세한 내용은 [여기](https:github.comultralyticsyolov5issues1314)를 참조하세요. 기본 YOLOv5 모델을 사용하여 냉장고 내부의 물체 감지를 수행하면 좋은 결과를 얻지 못할 수 있습니다. 이런 이유로 aicook과 같은 데이터 세트로 훈련된 사용자 지정 모델이 필요한 이유입니다.
 
-### 1. Download the custom dataset
+### 1. 사용자 지정 데이터 세트 다운로드
 
-Simply go to [here](https://universe.roboflow.com/karel-cornelis-q2qqg/aicook-lcv4d/4) to download the aicook dataset in a zip file. Unzip the file to your `yolov5` repo directory, then run `cd yolov5; mv train ..; mv valid ..;` as the aicook `data.yaml` specifies the `train` and `val` folders to be up one level.
+[여기](https://universe.roboflow.com/karel-cornelis-q2qqg/aicook-lcv4d/4)로 이동하여 zip 파일로 된 aicook 데이터 세트를 다운로드합니다. 파일의 압축을 `yolov5` 저장소 디렉토리에 풀고 `cd yolov5; mv train ..; mv valid ..;`를 실행하여 `train` 및 `val` 폴더를 aicook `data.yaml`의 한 수준 위의 폴더로 이동합니다.
 
-### 2. Retrain the YOLOv5 with the custom dataset
+### 2. 사용자 정의 데이터 세트로 YOLOv5 재학습하기
 
-Run the script below to generate a custom model `best.torchscript.pt` located in `runs/train/exp/weights`:
+`runs/train/exp/weights`에 사용자 지정 모델 `best.torchscript.pt`을 생성하기 위해 아래의 스크립트를 실행합니다.
 
 ```
 python train.py --img 640 --batch 16 --epochs 3 --data  data.yaml  --weights yolov5s.pt
 ```
 
-The precision of the model with the epochs set as 3 is very low - less than 0.01 actually; with a tool such as [Weights and Biases](https://wandb.ai), which can be set up in a few minutes and has been integrated with YOLOv5, you can find that with `--epochs` set as 80, the precision gets to be 0.95. But on a CPU machine, you can quickly train a custom model using the command above, then test it in the Android demo app. Below is a sample wandb metrics from 3, 30, and 100 epochs of training:
+epoch가 3으로 설정된 모델의 정밀도는 실제로 0.01 미만으로 매우 낮습니다. YOLOv5와 통합되어 있으며 몇 분 안에 설정할 수 있는 [Weights and Biases](https://wandb.ai)와 같은 도구를 사용하면 `--epochs`를 80으로 설정하여 정밀도를 0.95까지 올릴 수 있습니다. 그러나 CPU 머신에서는 위의 명령을 사용하여 사용자 지정 모델을 빠르게 학습시킨 다음, Android 데모 앱에서 테스트할 수 있습니다. 다음은 epoch이 3, 30 및 100으로 학습시켰을 때의 샘플 wandb 메트릭입니다.
 
 ![](metrics.png)
 
-### 3. Convert the custom model to lite version
+### 3. 사용자 지정 모델을 lite 버전으로 변환하기
 
-With the `export.py` modified in step 1 `Prepare the model` of the section `Quick Start`, you can convert the new custom model to its TorchScript lite version:
+`빠른 시작` 섹션의 1단계 `모델 준비하기`에서 수정된 `export.py`를 사용하여 새 사용자 지정 모델을 TorchScript lite 버전으로 변환할 수 있습니다.
 
 ```
 python export.py --weights runs/train/exp/weights/best.pt --include torchscript
 ```
 
-The resulting `best.torchscript.ptl` is located in `runs/train/exp/weights`, which needs to be copied to the Android demo app's assets folder.
+결과로 생성된 모델 `best.torchscript.ptl`은 `runstrainexpweights`에 위치해 있습니다. 이 파일을 Android 데모 앱의 assets 폴더에 복사해야 합니다.
 
-### 4. Update the demo app
+### 4. 데모 앱 업데이트하기
 
-In Android Studio, first in `MainActivity.java`, change line:
+먼저 Android Studio에서 `MainActivity.java`의 아래 라인들을 변경합니다.
 
 ```
 private String[] mTestImages = {"test1.png", "test2.jpg", "test3.png"};
 ```
-to:
+아래와 같이 변경합니다.
 ```
 private String[] mTestImages = {"aicook1.jpg", "aicook2.jpg", "aicook3.jpg", "test1.png", "test2.jpg", "test3.png"};
 ```
-(The three aicook test images have been added to the repo.)
+(3개의 aicook 테스트 이미지가 repo에 추가되어 있습니다.)
 
-and change lines:
+아래 라인들도
 ```
 mModule = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "yolov5s.torchscript.ptl"));
 BufferedReader br = new BufferedReader(new InputStreamReader(getAssets().open("classes.txt")));
 ```
-to:
+아래와 같이 변경합니다.
 ```
 mModule = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "best.torchscript.ptl"));
 BufferedReader br = new BufferedReader(new InputStreamReader(getAssets().open("aicook.txt")));
 ```
-(aicook.txt defines the 30 custom class names, copied from `data.yaml` in the custom dataset downloaded in step 1.)
+(aicook.txt는 1단계에서 다운로드한 사용자 정의 데이터 세트의 `data.yaml`에서 복사한 30개의 사용자 정의 클래스 이름을 정의합니다.)
 
-Then in `PrePostProcessor.java`, change line `private static int mOutputColumn = 85;` to `private static int mOutputColumn = 35;`.
+그런 다음 `PrePostProcessor.java`에서 `private static int mOutputColumn = 85;` 행을 `private static int mOutputColumn = 35;`로 변경합니다.
 
-Run the app in Android Studio and you should see the custom model working on the first three aicook test images:
+Android Studio에서 앱을 실행하면 aicook 테스트 이미지 첫 세 장에서 작동하는 사용자 정의 모델이 표시되어야 합니다.
 
 ![](aicook1.png)
 ![](aicook2.png)
@@ -133,4 +133,4 @@ Run the app in Android Studio and you should see the custom model working on the
 ![](aicook3.png)
 ![](aicook4.png)
 
-In order to do live object detection with the new custom model, just open `ObjectDetectionActivity.java` and replace `yolov5s.torchscript.ptl` in `mModule = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "yolov5s.torchscript.ptl"));` with `best.torchscript.ptl`.
+새로운 사용자 정의 모델로 라이브 객체 탐지를 수행하려면, `ObjectDetectionActivity.java`를 열고 `mModule = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "yolov5s.torchscript.ptl"));`의 `yolov5s.torchscript.ptl`를 `best.torchscript.ptl`으로 변경합니다.
