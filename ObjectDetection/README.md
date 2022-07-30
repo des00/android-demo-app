@@ -1,4 +1,4 @@
-# Android에서 YOLOv5를 사용한 객체 팀지
+# Android에서 YOLOv5를 사용한 객체 탐지
 
 ## 소개하기
 
